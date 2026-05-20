@@ -1,0 +1,54 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --bg-main: 248 250 252;
+    --bg-card: 255 255 255;
+    --text-main: 15 23 42;
+    --text-muted: 100 116 139;
+    --line-color: rgba(0, 0, 0, 0.1);
+    --line-soft: rgba(0, 0, 0, 0.05);
+    --line-strong: rgba(0, 0, 0, 0.2);
+    --hover-color: rgba(0, 0, 0, 0.05);
+  }
+
+  .dark {
+    --bg-main: 2 6 23;
+    --bg-card: 15 23 42;
+    --text-main: 255 255 255;
+    --text-muted: 148 163 184;
+    --line-color: rgba(255, 255, 255, 0.1);
+    --line-soft: rgba(255, 255, 255, 0.05);
+    --line-strong: rgba(255, 255, 255, 0.2);
+    --hover-color: rgba(255, 255, 255, 0.05);
+  }
+
+  body {
+    @apply bg-app-bg text-text-main antialiased font-sans overflow-x-hidden transition-colors duration-300;
+  }
+}
+
+.glass-panel {
+  @apply backdrop-blur-md border border-app-line shadow-xl;
+  background-color: color-mix(in srgb, var(--bg-card) 60%, transparent);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-app-line rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-app-line-strong;
+}
