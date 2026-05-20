@@ -1,0 +1,1986 @@
+{
+  "name": "Document Processing for RAG",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "auth/register",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "ebcdebd9-c53c-4cae-9b6b-1b402c828e54",
+      "name": "POST /auth/register",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -672,
+        256
+      ],
+      "webhookId": "84b10a89-7252-4a85-a1ab-856a26e52cd0"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.body.email }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            },
+            {
+              "leftValue": "={{ $json.body.password }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            },
+            {
+              "leftValue": "={{ $json.body.name }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "6df5def5-d356-4d11-ab28-93fc7863fd98",
+      "name": "Validate Register Input",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -448,
+        256
+      ]
+    },
+    {
+      "parameters": {
+        "collection": "users",
+        "options": {
+          "limit": 1
+        },
+        "query": "={\n  \"email\": \"{{ $json.email }}\"\n}"
+      },
+      "id": "742e08df-accb-497d-aab5-d85546cfcec7",
+      "name": "Check Email Exists",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.2,
+      "position": [
+        -224,
+        160
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "mongoDb": {
+          "id": "L56bl2pvwLo1yRNs",
+          "name": "MongoDB account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $input.all().length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              },
+              "id": "6424dafc-c57f-411a-a21d-c3ecc1e0586f"
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "b3f7e556-75bd-4345-9a79-960dde01b9c5",
+      "name": "Email Already Exists?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        0,
+        160
+      ],
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"error\": \"Email already exists\" } }}",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "e8643598-8865-42c7-a021-9dcf08f1e398",
+      "name": "Return Email Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        224,
+        64
+      ]
+    },
+    {
+      "parameters": {
+        "value": "={{ $(\"POST /auth/register\").item.json.body.password }}",
+        "dataPropertyName": "password_hash"
+      },
+      "id": "cb610772-9c4c-45db-8091-691511090054",
+      "name": "Hash Password",
+      "type": "n8n-nodes-base.crypto",
+      "typeVersion": 2,
+      "position": [
+        224,
+        256
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1",
+              "name": "name",
+              "type": "string",
+              "value": "={{ $(\"POST /auth/register\").item.json.body.name }}"
+            },
+            {
+              "id": "2",
+              "name": "email",
+              "type": "string",
+              "value": "={{ $(\"POST /auth/register\").item.json.body.email }}"
+            },
+            {
+              "id": "3",
+              "name": "password_hash",
+              "type": "string",
+              "value": "={{ $json.password_hash }}"
+            },
+            {
+              "id": "4",
+              "name": "created_at",
+              "type": "string",
+              "value": "={{ $now.toISO() }}"
+            },
+            {
+              "id": "5",
+              "name": "last_login",
+              "type": "string",
+              "value": "={{ $now.toISO() }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "e1495688-14a7-4727-a371-1c95e3c14421",
+      "name": "Prepare User Data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        448,
+        256
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "collection": "users",
+        "fields": "name,email,password_hash,created_at,last_login",
+        "options": {
+          "dateFields": "created_at,last_login"
+        }
+      },
+      "id": "cf4f99a5-e8dc-4ccb-a6dd-aec425f2c027",
+      "name": "Create User",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.2,
+      "position": [
+        672,
+        256
+      ],
+      "credentials": {
+        "mongoDb": {
+          "id": "L56bl2pvwLo1yRNs",
+          "name": "MongoDB account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "useJson": true,
+        "claimsJson": "={{ { \"userId\": $json._id, \"email\": $json.email } }}",
+        "options": {
+          "algorithm": "HS256"
+        }
+      },
+      "id": "c5c37b7e-cc16-4692-bde5-4431d238c661",
+      "name": "Generate Register Token",
+      "type": "n8n-nodes-base.jwt",
+      "typeVersion": 1,
+      "position": [
+        896,
+        256
+      ],
+      "credentials": {
+        "jwtAuth": {
+          "id": "wTNOhICwAOEbt5c7",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"success\": true, \"user\": { \"id\": $(\"Create User\").item.json._id, \"name\": $(\"Create User\").item.json.name, \"email\": $(\"Create User\").item.json.email }, \"token\": $json.token } }}",
+        "options": {}
+      },
+      "id": "640e75ab-b705-459c-8f11-98a0a0d46e15",
+      "name": "Return Register Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1120,
+        256
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"error\": \"Missing required fields: name, email, password\" } }}",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "ca50e14b-e940-4b11-a4fb-de9b2d5c1e92",
+      "name": "Return Validation Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        -224,
+        352
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "auth/login",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "aa47313d-840d-4fe2-b43d-10ca18062dd1",
+      "name": "POST /auth/login",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -672,
+        2480
+      ],
+      "webhookId": "80c61c8e-f8f2-4d32-bdff-b64e92507bc1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.body.email }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            },
+            {
+              "leftValue": "={{ $json.body.password }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "d9f84859-50e4-4964-b67a-4f097c12e7c6",
+      "name": "Validate Login Input",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -448,
+        2480
+      ]
+    },
+    {
+      "parameters": {
+        "collection": "users",
+        "options": {
+          "limit": 1
+        },
+        "query": "={\n  \"email\": \"{{ $json.body.email }}\"\n}"
+      },
+      "id": "abfd9b57-c960-4de1-b79e-7cbc24eeec1e",
+      "name": "Find User by Email",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.2,
+      "position": [
+        -224,
+        2384
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "mongoDb": {
+          "id": "L56bl2pvwLo1yRNs",
+          "name": "MongoDB account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $input.all().length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "254af44e-827a-4899-bb72-e630e68abaea",
+      "name": "User Found?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        0,
+        2384
+      ]
+    },
+    {
+      "parameters": {
+        "value": "={{ $(\"POST /auth/login\").item.json.body.password }}",
+        "dataPropertyName": "input_password_hash"
+      },
+      "id": "d33280c7-cf07-4216-bdec-57b0c822a706",
+      "name": "Verify Password",
+      "type": "n8n-nodes-base.crypto",
+      "typeVersion": 2,
+      "position": [
+        224,
+        2480
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.input_password_hash }}",
+              "rightValue": "={{ $(\"Find User by Email\").item.json.password_hash }}",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              },
+              "id": "f2cd6173-ce42-4be6-bcaa-258d7b1b3522"
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "95915f8f-c244-4f14-b232-4dea7f54e0e1",
+      "name": "Password Matches?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        448,
+        2480
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1",
+              "name": "_id",
+              "type": "string",
+              "value": "={{ $(\"Find User by Email\").item.json._id }}"
+            },
+            {
+              "id": "2",
+              "name": "last_login",
+              "type": "string",
+              "value": "={{ $now.toISO() }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "2c00018c-b7db-4468-9c61-3cc7b8c99746",
+      "name": "Prepare Last Login",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        672,
+        2576
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "collection": "users",
+        "updateKey": "={{ $json._id.replace(/\"/g, \"\") }}",
+        "fields": "last_login",
+        "options": {
+          "dateFields": "last_login"
+        }
+      },
+      "id": "33e53d51-57b7-4402-a566-d854fe3de1de",
+      "name": "Update Last Login",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.2,
+      "position": [
+        896,
+        2576
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "mongoDb": {
+          "id": "L56bl2pvwLo1yRNs",
+          "name": "MongoDB account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "useJson": true,
+        "claimsJson": "={{ { \"userId\": $(\"Find User by Email\").item.json._id, \"email\": $(\"Find User by Email\").item.json.email } }}",
+        "options": {
+          "algorithm": "HS256"
+        }
+      },
+      "id": "5d7f1eee-fd65-4540-81cf-a560d7a59111",
+      "name": "Generate Login Token",
+      "type": "n8n-nodes-base.jwt",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        2576
+      ],
+      "credentials": {
+        "jwtAuth": {
+          "id": "wTNOhICwAOEbt5c7",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"success\": true, \"user\": { \"id\": $(\"Find User by Email\").item.json._id, \"name\": $(\"Find User by Email\").item.json.name, \"email\": $(\"Find User by Email\").item.json.email }, \"token\": $json.token } }}",
+        "options": {}
+      },
+      "id": "318ddd12-2326-4481-9e13-54dbd637a7be",
+      "name": "Return Login Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1344,
+        2576
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"error\": \"Invalid email or password\" } }}",
+        "options": {
+          "responseCode": 401
+        }
+      },
+      "id": "d97ff99a-76dd-472c-8774-0efba5fb356f",
+      "name": "Return Invalid Password",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        672,
+        2384
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"error\": \"Invalid email or password\" } }}",
+        "options": {
+          "responseCode": 401
+        }
+      },
+      "id": "d485c198-936a-404d-b7b1-083a41771af5",
+      "name": "Return User Not Found",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        224,
+        2288
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"error\": \"Missing required fields: email, password\" } }}",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "ba66ffd5-5c15-4fda-b28c-5b4d0a80ee9e",
+      "name": "Return Login Validation Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        -224,
+        2576
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "upload",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "d1c2bde6-0eb8-4b73-90d1-7f5b4c7cf741",
+      "name": "POST /upload",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -672,
+        912
+      ],
+      "webhookId": "d29f1de8-d463-476f-aadd-f9af63ebba56",
+      "credentials": {
+        "jwtAuth": {
+          "id": "wTNOhICwAOEbt5c7",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "verify",
+        "token": "={{ $json.headers.authorization.replace(\"Bearer \", \"\") }}",
+        "options": {}
+      },
+      "id": "f319e97b-d9a2-436f-afa6-0164c90f9648",
+      "name": "Verify Upload Token",
+      "type": "n8n-nodes-base.jwt",
+      "typeVersion": 1,
+      "position": [
+        -448,
+        992
+      ],
+      "credentials": {
+        "jwtAuth": {
+          "id": "wTNOhICwAOEbt5c7",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1",
+              "name": "user_id",
+              "type": "string",
+              "value": "={{ $(\"Merge\").item.json.payload.userId }}"
+            },
+            {
+              "id": "2",
+              "name": "document_name",
+              "type": "string",
+              "value": "={{ $(\"Merge\").item.binary.files.fileName }}"
+            },
+            {
+              "id": "3",
+              "name": "chunks_count",
+              "type": "string",
+              "value": "=1"
+            },
+            {
+              "id": "4",
+              "name": "uploaded_at",
+              "type": "string",
+              "value": "={{ $now.toISO() }}"
+            },
+            {
+              "id": "0c18d719-c12f-4f84-9cfa-0f2a8b4a3fb0",
+              "name": "text",
+              "value": "={{ $json.text }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "92d39136-e80c-4bc1-ac8f-626a51bbb761",
+      "name": "Prepare Document Metadata",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1040,
+        816
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "collection": "document",
+        "fields": "=user_id,document_name,chunks_count,uploaded_at,text",
+        "options": {
+          "dateFields": "uploaded at"
+        }
+      },
+      "id": "9664a06e-303e-4ac7-8c67-b77644fd2442",
+      "name": "Save Document Metadata",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.2,
+      "position": [
+        1392,
+        816
+      ],
+      "credentials": {
+        "mongoDb": {
+          "id": "L56bl2pvwLo1yRNs",
+          "name": "MongoDB account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"success\": true, \"message\": \"Document uploaded and processed successfully\", \"chunks\": $json.chunks_count, \"document_id\": $(\"Save Document Metadata\").item.json._id } }}",
+        "options": {}
+      },
+      "id": "9a0d3832-5b5b-446d-afaa-c051db2d6a67",
+      "name": "Return Upload Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1872,
+        816
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "chat",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "9c63dd33-f28d-4880-a54f-ffadd1a794e1",
+      "name": "POST /chat",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -672,
+        1856
+      ],
+      "webhookId": "88f1303a-c0a4-433b-af32-aa291fc6ed59",
+      "alwaysOutputData": true,
+      "credentials": {
+        "jwtAuth": {
+          "id": "wTNOhICwAOEbt5c7",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $(\"POST /chat\").item.json.body.question }}",
+        "options": {
+          "systemMessage": "You are an enterprise AI assistant. Answer ONLY from the provided context. Rules:\n- Never hallucinate\n- If answer is unavailable say: \"Information not found in uploaded documents.\"\n- Keep answers structured\n- Use bullet points where needed\n- Answer in user's language",
+          "maxIterations": 5
+        }
+      },
+      "id": "795cc134-ff65-4015-aa40-f71ee7e6c0a4",
+      "name": "AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -176,
+        1648
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1",
+              "name": "user_id",
+              "type": "string",
+              "value": "={{ $(\"Verify Chat Token\").item.json.userId }}"
+            },
+            {
+              "id": "2",
+              "name": "question",
+              "type": "string",
+              "value": "={{ $(\"POST /chat\").item.json.body.question }}"
+            },
+            {
+              "id": "3",
+              "name": "answer",
+              "type": "string",
+              "value": "={{ $(\"AI Agent\").item.json.output }}"
+            },
+            {
+              "id": "4",
+              "name": "created_at",
+              "type": "string",
+              "value": "={{ $now.toISO() }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "9ac234ff-fc6a-4b54-8041-0ee2589a75fa",
+      "name": "Prepare Chat History",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        400,
+        1856
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "collection": "chat_history",
+        "fields": "user_id,question,answer,created_at",
+        "options": {
+          "dateFields": "created_at"
+        }
+      },
+      "id": "1ee2ffaf-8a80-412b-ab39-da019318da40",
+      "name": "Save Chat History",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.2,
+      "position": [
+        624,
+        1856
+      ],
+      "credentials": {
+        "mongoDb": {
+          "id": "L56bl2pvwLo1yRNs",
+          "name": "MongoDB account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"success\": true, \"answer\": $(\"AI Agent\").item.json.output } }}",
+        "options": {}
+      },
+      "id": "e431d4bb-3d25-4bfb-8ebd-a7d301bc4b23",
+      "name": "Return Chat Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        848,
+        1856
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "path": "history",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "c4a139b1-b293-45dc-8a0f-d1077e690bd2",
+      "name": "GET /history",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -288,
+        2848
+      ],
+      "webhookId": "27002583-1fc4-407b-b027-2174d587fb0a",
+      "credentials": {
+        "jwtAuth": {
+          "id": "wTNOhICwAOEbt5c7",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "verify",
+        "token": "={{ $json.headers.authorization.replace(\"Bearer \", \"\") }}",
+        "options": {}
+      },
+      "id": "d8df198f-65b6-4aff-bcc3-3f1ca3200d4f",
+      "name": "Verify History Token",
+      "type": "n8n-nodes-base.jwt",
+      "typeVersion": 1,
+      "position": [
+        -48,
+        2848
+      ],
+      "credentials": {
+        "jwtAuth": {
+          "id": "wTNOhICwAOEbt5c7",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "collection": "chat_history",
+        "options": {
+          "limit": 50,
+          "sort": "={ \"created_at\": -1 }"
+        },
+        "query": "={ \"user_id\": \"{{ $json.payload.userId }}\" }"
+      },
+      "id": "35b63fe7-c4fe-46ed-9cc5-416f59789039",
+      "name": "Get Chat History",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.2,
+      "position": [
+        208,
+        2848
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "mongoDb": {
+          "id": "L56bl2pvwLo1yRNs",
+          "name": "MongoDB account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"success\": true, \"history\": $input.all().map(item => ({ \"question\": item.json.question, \"answer\": item.json.answer, \"created_at\": item.json.created_at })) } }}",
+        "options": {}
+      },
+      "id": "af6b9beb-3d94-40ff-8957-416abfaab252",
+      "name": "Return History Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        464,
+        2848
+      ]
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        -240,
+        1888
+      ],
+      "id": "5e662895-db4a-43b2-940b-e49c9b6120ca",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "gyB438jGpqVZ26WA",
+          "name": "Google Gemini(PaLM) Api account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"error\": \"Invalid file type. Only PDF and images are supported\" } }}",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "7b71638d-ec75-494d-bdfe-2c42d55277a7",
+      "name": "Return Invalid File Type",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        224,
+        576
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "binaryPropertyName": "files",
+        "options": {
+          "joinPages": true
+        }
+      },
+      "id": "c4a301bd-0834-4195-af4a-2392e32327ac",
+      "name": "Extract PDF Text",
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        448,
+        720
+      ]
+    },
+    {
+      "parameters": {
+        "numberInputs": 4
+      },
+      "id": "84b1f250-ae35-44a0-8e46-687e7fe28ac2",
+      "name": "Merge Extracted Text",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        672,
+        976
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "text",
+        "binaryPropertyName": "files",
+        "destinationKey": "text",
+        "options": {}
+      },
+      "id": "9c342f9b-ef99-43a0-b625-df2e071aeab3",
+      "name": "Extract DOCX Text",
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        448,
+        912
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1",
+              "name": "text",
+              "value": "={{ $json.ParsedResults[0].ParsedText }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "29986b9e-18bc-4aa4-8aad-a22109000001",
+      "name": "Normalize OCR Output",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        448,
+        1104
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "text",
+        "binaryPropertyName": "files",
+        "destinationKey": "text",
+        "options": {}
+      },
+      "id": "64830938-1127-4b11-8808-477a200f406d",
+      "name": "Extract TXT Text",
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        448,
+        1296
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -224,
+        912
+      ],
+      "id": "cf67e46f-ffbc-4d54-ba68-878d76fc4e33",
+      "name": "Merge",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "operation": "verify",
+        "token": "={{ $json.headers.authorization.replace(\"Bearer \", \"\") }}",
+        "options": {}
+      },
+      "id": "2ec049a9-bad2-471b-9fbb-014d2dd10994",
+      "name": "Verify Chat Token",
+      "type": "n8n-nodes-base.jwt",
+      "typeVersion": 1,
+      "position": [
+        -448,
+        1856
+      ],
+      "credentials": {
+        "jwtAuth": {
+          "id": "wTNOhICwAOEbt5c7",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "Use this tool to search and retrieve company documents, internal knowledge base articles, or data engineering guides.",
+        "mongoCollection": {
+          "__rl": true,
+          "value": "document",
+          "mode": "list",
+          "cachedResultName": "document"
+        },
+        "vectorIndexName": "DOC_CHAT_VECTOR_INDEX",
+        "options": {
+          "namespace": "={{ $(\"POST /chat\").item.json.jwtPayload.userId }}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreMongoDBAtlas",
+      "typeVersion": 1.3,
+      "position": [
+        32,
+        1872
+      ],
+      "id": "9b3b0284-e9eb-4353-816d-4bdd72aa457e",
+      "name": "MongoDB Atlas Vector Store",
+      "credentials": {
+        "mongoDb": {
+          "id": "L56bl2pvwLo1yRNs",
+          "name": "MongoDB account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        64,
+        2080
+      ],
+      "id": "ae03f689-836f-45b1-a446-ee285cfa31ed",
+      "name": "Embeddings Google Gemini",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "gyB438jGpqVZ26WA",
+          "name": "Google Gemini(PaLM) Api account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "mongoCollection": {
+          "__rl": true,
+          "value": "document",
+          "mode": "list",
+          "cachedResultName": "document"
+        },
+        "vectorIndexName": "DOC_CHAT_VECTOR_INDEX",
+        "options": {
+          "namespace": "={{ $(\"Merge\").item.json.payload.userId }}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreMongoDBAtlas",
+      "typeVersion": 1.3,
+      "position": [
+        928,
+        1216
+      ],
+      "id": "aa943ade-0a75-4e9e-b987-c0d034188549",
+      "name": "MongoDB Atlas Vector Store1",
+      "credentials": {
+        "mongoDb": {
+          "id": "L56bl2pvwLo1yRNs",
+          "name": "MongoDB account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        720,
+        1376
+      ],
+      "id": "c4fe21fc-6a4a-4195-94dd-f975bc4f02c2",
+      "name": "Embeddings Google Gemini1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "gyB438jGpqVZ26WA",
+          "name": "Google Gemini(PaLM) Api account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "textSplittingMode": "custom",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1.1,
+      "position": [
+        1024,
+        1440
+      ],
+      "id": "ac7ccdfe-8a19-4cdf-8bd7-5e98f2d4b1b1",
+      "name": "Default Data Loader"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.textSplitterRecursiveCharacterTextSplitter",
+      "typeVersion": 1,
+      "position": [
+        1104,
+        1648
+      ],
+      "id": "ddfc0646-18f2-4792-9ee8-92689c76d84e",
+      "name": "Recursive Character Text Splitter"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $(\"POST /chat\").item.json.jwtPayload.userId }}",
+        "collectionName": "document",
+        "databaseName": "DOC_CHAT",
+        "contextWindowLength": 10
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryMongoDbChat",
+      "typeVersion": 1.1,
+      "position": [
+        -80,
+        1872
+      ],
+      "id": "e0a26280-bb93-406b-a4cd-cc2abc0c8eb9",
+      "name": "MongoDB Chat Memory",
+      "credentials": {
+        "mongoDb": {
+          "id": "L56bl2pvwLo1yRNs",
+          "name": "MongoDB account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $binary.files.fileExtension }}",
+                    "rightValue": "pdf",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "73bdf89d-4206-46f5-a116-3d69fa7cadae"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "PDF_Processing"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $binary.files.fileExtension }}",
+                    "rightValue": "docx",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "35a2d1aa-4e14-4dc2-aac9-48c7f7b77a1d"
+                  },
+                  {
+                    "leftValue": "={{ $binary.files.fileExtension }}",
+                    "rightValue": "doc",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "923c9227-ee09-450d-8d0e-76657a45c6a3"
+                  }
+                ],
+                "combinator": "or"
+              },
+              "renameOutput": true,
+              "outputKey": "Word_Docs"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $binary.files.fileExtension }}",
+                    "rightValue": "png",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "6f1c5de1-fd6a-47ea-b425-969528333e45"
+                  },
+                  {
+                    "leftValue": "={{ $binary.files.fileExtension }}",
+                    "rightValue": "jpg",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "d325fbec-e8f4-4ddf-806d-bc00ce5c0f31"
+                  },
+                  {
+                    "leftValue": "={{ $binary.files.fileExtension }}",
+                    "rightValue": "jpeg",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "3663884d-deec-4c50-b900-4bedb116609a"
+                  }
+                ],
+                "combinator": "or"
+              },
+              "renameOutput": true,
+              "outputKey": "Images"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $binary.files.fileExtension }}",
+                    "rightValue": "txt",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "a96df896-acba-4045-a4e3-9abb51832086"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "TXT"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "672c3c2c-8bc8-4dbc-8ce6-8b751bfe7a16",
+      "name": "Detect File Type",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        0,
+        880
+      ],
+      "alwaysOutputData": false,
+      "retryOnFail": false,
+      "executeOnce": false
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.ocr.space/parse/image",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "K81138117588957"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "files"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "2690efaf-18e2-4348-be30-888d18c0e5ca",
+      "name": "OCR Image Extraction",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        224,
+        1104
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "POST /auth/register": {
+      "main": [
+        [
+          {
+            "node": "Validate Register Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Register Input": {
+      "main": [
+        [
+          {
+            "node": "Check Email Exists",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Return Validation Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Email Exists": {
+      "main": [
+        [
+          {
+            "node": "Email Already Exists?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email Already Exists?": {
+      "main": [
+        [
+          {
+            "node": "Hash Password",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Return Email Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hash Password": {
+      "main": [
+        [
+          {
+            "node": "Prepare User Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare User Data": {
+      "main": [
+        [
+          {
+            "node": "Create User",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create User": {
+      "main": [
+        [
+          {
+            "node": "Generate Register Token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Register Token": {
+      "main": [
+        [
+          {
+            "node": "Return Register Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST /auth/login": {
+      "main": [
+        [
+          {
+            "node": "Validate Login Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Login Input": {
+      "main": [
+        [
+          {
+            "node": "Find User by Email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Return Login Validation Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find User by Email": {
+      "main": [
+        [
+          {
+            "node": "User Found?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "User Found?": {
+      "main": [
+        [
+          {
+            "node": "Verify Password",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Return User Not Found",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verify Password": {
+      "main": [
+        [
+          {
+            "node": "Password Matches?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Password Matches?": {
+      "main": [
+        [
+          {
+            "node": "Prepare Last Login",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Return Invalid Password",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Last Login": {
+      "main": [
+        [
+          {
+            "node": "Update Last Login",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Last Login": {
+      "main": [
+        [
+          {
+            "node": "Generate Login Token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Login Token": {
+      "main": [
+        [
+          {
+            "node": "Return Login Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST /upload": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Verify Upload Token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verify Upload Token": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Prepare Document Metadata": {
+      "main": [
+        [
+          {
+            "node": "Save Document Metadata",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Document Metadata": {
+      "main": [
+        [
+          {
+            "node": "Return Upload Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST /chat": {
+      "main": [
+        [
+          {
+            "node": "Verify Chat Token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Prepare Chat History",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Chat History": {
+      "main": [
+        [
+          {
+            "node": "Save Chat History",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Chat History": {
+      "main": [
+        [
+          {
+            "node": "Return Chat Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET /history": {
+      "main": [
+        [
+          {
+            "node": "Verify History Token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verify History Token": {
+      "main": [
+        [
+          {
+            "node": "Get Chat History",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Chat History": {
+      "main": [
+        [
+          {
+            "node": "Return History Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract PDF Text": {
+      "main": [
+        [
+          {
+            "node": "Merge Extracted Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract DOCX Text": {
+      "main": [
+        [
+          {
+            "node": "Merge Extracted Text",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Normalize OCR Output": {
+      "main": [
+        [
+          {
+            "node": "Merge Extracted Text",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Extract TXT Text": {
+      "main": [
+        [
+          {
+            "node": "Merge Extracted Text",
+            "type": "main",
+            "index": 3
+          }
+        ]
+      ]
+    },
+    "Merge Extracted Text": {
+      "main": [
+        [
+          {
+            "node": "Prepare Document Metadata",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "MongoDB Atlas Vector Store1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Detect File Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verify Chat Token": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MongoDB Atlas Vector Store": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Google Gemini": {
+      "ai_embedding": [
+        [
+          {
+            "node": "MongoDB Atlas Vector Store",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Google Gemini1": {
+      "ai_embedding": [
+        [
+          {
+            "node": "MongoDB Atlas Vector Store1",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Default Data Loader": {
+      "ai_document": [
+        [
+          {
+            "node": "MongoDB Atlas Vector Store1",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Recursive Character Text Splitter": {
+      "ai_textSplitter": [
+        [
+          {
+            "node": "Default Data Loader",
+            "type": "ai_textSplitter",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MongoDB Chat Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Detect File Type": {
+      "main": [
+        [
+          {
+            "node": "Extract PDF Text",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Return Invalid File Type",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Extract DOCX Text",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "OCR Image Extraction",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Extract TXT Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OCR Image Extraction": {
+      "main": [
+        [
+          {
+            "node": "Normalize OCR Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Return History Response": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "d1831425-bb45-4161-9941-629eb0db0e39",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "ec183212b072e819415700a5f60e03df54dd6327782ea0026a670eff9a3f4191"
+  },
+  "id": "kICeDaRnUXS7nWjk",
+  "tags": []
+}
